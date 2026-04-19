@@ -1,130 +1,478 @@
-# Palindrome Runner
+<div align="center">
 
-> **Koş, tıkla — sonra aynını tersine yap.**
+```
+██████╗  █████╗ ██╗     ██╗███╗   ██╗██████╗ ██████╗  ██████╗ ███╗   ███╗███████╗
+██╔══██╗██╔══██╗██║     ██║████╗  ██║██╔══██╗██╔══██╗██╔═══██╗████╗ ████║██╔════╝
+██████╔╝███████║██║     ██║██╔██╗ ██║██║  ██║██████╔╝██║   ██║██╔████╔██║█████╗
+██╔═══╝ ██╔══██║██║     ██║██║╚██╗██║██║  ██║██╔══██╗██║   ██║██║╚██╔╝██║██╔══╝
+██║     ██║  ██║███████╗██║██║ ╚████║██████╔╝██║  ██║╚██████╔╝██║ ╚═╝ ██║███████╗
+╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝
 
-Palindrome Runner bir ritim-refleks oyunudur. **İlk yarıda** engellere göre atlarsın; **ikinci yarıda** aynı hareketleri ayna-simetrisi içinde tekrarlamak zorundasın. Ne kadar senkronize olursan o kadar yüksek puan alırsın.
+██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗
+██╔══██╗██║   ██║████╗  ██║████╗  ██║██╔════╝██╔══██╗
+██████╔╝██║   ██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
+██╔══██╗██║   ██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
+██║  ██║╚██████╔╝██║ ╚████║██║ ╚████║███████╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+```
+
+<br/>
+
+**Koş. Atla. Tersine çevir.**
+
+*Hareketlerin palindromdur — ya sen de öyle misin?*
+
+<br/>
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.2-646cff?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-1.6-6e9f18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-136%20passing-4ade80?style=flat-square&logo=checkmarx&logoColor=white)]()
+[![License](https://img.shields.io/badge/License-MIT-f59e0b?style=flat-square)]()
+[![Zero Dependencies](https://img.shields.io/badge/Runtime%20Deps-0-e879f9?style=flat-square)]()
+
+<br/>
+
+[▶ Oyna](#-hızlı-başlangıç) · [📖 Nasıl Oynanır](#-nasıl-oynanır) · [🏗 Mimari](#-mimari) · [🗺 Yol Haritası](#-yol-haritası)
+
+</div>
 
 ---
 
-## Oynanış
+## 📖 Konsept
 
-### Kontroller
-
-| Aksiyon | PC | Mobil |
-|---|---|---|
-| **Normal zıplama** (low engeli aşmak) | `Space` / `Enter` / tıkla (kısa) | Kısa dokunuş |
-| **Yüksek zıplama** (block engeli aşmak) | Uzun bas (≥ 150 ms) | Uzun basılı tut |
-| **High engeli** (havadaki bariyer) | Hiçbir şey yapma — yerde kal | Dokunma |
-
-### Engel Türleri
-
-| Renk | Tür | Kaçınma yöntemi |
-|---|---|---|
-| 🔴 Kırmızı | `low` — yerde alçak engel | Kısa bas → normal zıplama |
-| 🟡 Sarı | `high` — havada yüzen bariyer | Basmadan geç (yerde kal) |
-| 🟣 Mor | `block` — uzun yüksek blok | Uzun bas → yüksek zıplama |
-
-### Faz Sırası
+**Palindrome Runner**, klasik bir runner oyununun üzerine inşa edilmiş, zamansal simetri temelli bir bulmaca-refleks oyunudur. Her tur iki eşit yarıya bölünür:
 
 ```
-COUNTDOWN (3s) → FIRST_HALF → REWIND (0.8s) → SECOND_HALF → RESULT
+◄────────────────── TUR ──────────────────►
+
+  İLK YARI          REWIND         İKİNCİ YARI
+  ─────────          ──────         ───────────
+  Engelleri        ⚡ Flash!        Aynı hareketleri
+  atlarsın  ────►  Sıfırlan  ────►  ayna-zamanında
+  kaydedilir                        tekrar yaparsın
 ```
 
-1. **COUNTDOWN**: 3-2-1 geri sayım. Kontroller ekranda görünür.
-2. **İLK YARI**: Engellere göre zıpla, inputların kaydedilir.
-3. **GERİ SAR**: Ekran flaş efekti görür, seviye sıfırlanır.
-4. **İKİNCİ YARI**: Aynı hareketleri ayna-zamanında tekrarla. Beyaz daireler (ghost indicator) seni uyarır.
-5. **SONUÇ**: Puan, combo, perfect/good/ok/miss dağılımı gösterilir.
+Aradaki matematiksel ilişki basittir ama ustalaşması asla değil:
 
-### Puanlama
+> **Eğer ilk yarıda `t` zamanında zıpladıysan,**
+> **ikinci yarıda tam `(T − t)` anında zıplamalısın.**
 
-| Eşleşme | Puan | Koşul |
+`t = 500ms` ise, ikinci yarıdaki beklenen zaman `T − 500ms`'dir.
+Ne kadar senkronize olursan o kadar **Perfect** — ne kadar şaşırırsan o kadar **Miss**.
+
+---
+
+## 🎮 Nasıl Oynanır
+
+### Faz Akışı
+
+Her tur şu sırayı izler:
+
+```
+┌─────────────┐    ┌────────────┐    ┌─────────┐    ┌──────────────┐    ┌────────┐
+│  COUNTDOWN  │───►│ İLK YARI  │───►│  REWIND │───►│ İKİNCİ YARI │───►│ SONUÇ │
+│    3 · 2 · 1│    │  15 saniye │    │  0.8 sn │    │  15 saniye   │    │       │
+└─────────────┘    └────────────┘    └─────────┘    └──────────────┘    └────────┘
+```
+
+| Faz | Süre | Ne yapacaksın |
 |---|---|---|
-| Perfect | +100 × combo çarpanı | ≤ 60 ms fark (seviyeye göre değişir) |
-| Good | +50 | ≤ 120 ms |
-| Ok | +20 | ≤ 200 ms |
-| Miss | −30 + 1 can | Pencere dışı veya hiç basılmaz |
-| Engel atlama | +10 | Çarpmadan geçilen her engel |
-| Eşleşmeyen mirror | −50 her biri | İkinci yarıda kaçırılan tap'lar |
+| **HAZIRLAN** | 3 sn | 3-2-1 geri sayımı izle, kontrolleri gör |
+| **İLK YARI** | Seviyeye göre | Engellere göre zıpla — hareketlerin kaydedilir |
+| **GERİ SAR** | 0.8 sn | Beyaz flaş — level sıfırlanır |
+| **İKİNCİ YARI** | Aynı süre | Geçmiş hareketlerini tam zamanında tekrar yap |
+| **SONUÇ** | — | Skorun, combo'n ve istatistiklerin |
 
-**Combo çarpanı**: 3+ perfect → ×2 · 6+ → ×3 · 10+ → ×4
+---
 
-### Zorluk Seviyeleri
+### 🕹️ Kontroller
 
-URL parametresiyle seçilir: `?level=3`
+Oyun sadece **tek bir aksiyona** dayanır — ama iki farklı şekilde:
 
-| Seviye | Etiket | Hint | Tolerans (ok) |
+<table>
+<tr>
+<td align="center" width="50%">
+
+**🔵 Kısa Basış**
+`< 150 ms`
+
+Klavye: `Space` veya `Enter` (hafifçe bas, bırak)
+Mobil: Kısa dokun
+
+**→ Normal zıplama**
+
+</td>
+<td align="center" width="50%">
+
+**🟣 Uzun Basış**
+`≥ 150 ms`
+
+Klavye: `Space` veya `Enter` (basılı tut)
+Mobil: Basılı tut
+
+**→ Yüksek zıplama (1.7×)**
+
+</td>
+</tr>
+</table>
+
+> 💡 **İkinci yarıda ghost indicator (beyaz daire)** seni uyarır:
+> - Alçaktaki daire → **kısa bas** zamanı yaklaşıyor
+> - Yüksekteki daire → **uzun bas** zamanı yaklaşıyor
+
+---
+
+### 🚧 Engel Türleri
+
+Üç farklı engel tipi, üç farklı tepkiyi zorunlu kılar:
+
+```
+  ┌──────────────────────────────────────────────────┐
+  │                                                  │
+  │  ████  ←── HIGH (Sarı): Yerde kal, atlama!       │
+  │                                                  │
+  │                                                  │
+  │            ████████  ←── BLOCK (Mor): Uzun bas   │
+  │  ██  ←── LOW (Kırmızı): Kısa bas                 │
+  │__________________________________________________│
+                    ZEMIN
+```
+
+| Renk | Tür | Tanım | Kaçınma yöntemi |
 |---|---|---|---|
-| 1 | Çok Kolay | ✅ | 260 ms |
-| 2 | Kolay (varsayılan) | ✅ | 220 ms |
-| 3 | Orta | ✅ | 200 ms |
-| 4 | Zor | ❌ | 170 ms |
-| 5 | Uzman | ❌ | 140 ms |
+| 🔴 Kırmızı | `low` | Zeminde alçak engel | **Kısa bas** → normal zıplama |
+| 🟡 Sarı | `high` | Havada yüzen bariyer | **Hiçbir şey yapma** — yerde kal |
+| 🟣 Mor | `block` | Zemine yaslanmış uzun blok | **Uzun bas** → yüksek zıplama |
 
-Seed ile deterministik level üretimi: `?seed=42&level=3`
+> ⚠️ `high` engellerinde sezgi tersine çalışır: **zıplarsan çarparsın**, yerde kalırsan geçersin.
 
 ---
 
-## Çalıştırma
+### 📊 Puanlama
+
+#### Eşleşme Kalitesi
+
+Her ikinci yarı tıklaması, ilk yarının mirror'ıyla karşılaştırılır:
+
+| Kalite | Zaman Farkı\* | Puan | Combo |
+|---|---|---|---|
+| ✨ **Perfect** | ≤ 60 ms | +100 × çarpan | +1 combo |
+| 👍 **Good** | ≤ 120 ms | +50 × çarpan | Sıfırlanır |
+| 🙂 **Ok** | ≤ 200 ms | +20 × çarpan | Sıfırlanır |
+| ❌ **Miss** | > 200 ms | −30 | Sıfırlanır, −1 can |
+
+*\*Toleranslar zorluk seviyesine göre değişir.*
+
+#### Combo Çarpanı
+
+Art arda **Perfect** vurursan çarpan büyür:
+
+```
+Combo  0–2  →  ×1      Combo  3–5  →  ×2
+Combo  6–9  →  ×3      Combo 10+   →  ×4
+```
+
+#### Diğer Puan Kaynakları
+
+| Kaynak | Puan |
+|---|---|
+| Engeli çarpmadan geçmek | +10 |
+| İkinci yarıda eşleşmeyen her mirror | −50 |
+
+#### Can Sistemi
+
+Turda **3 can** ile başlarsın. Her **Miss** (çarpışma veya kaçırılan mirror) 1 can düşürür. Canlar biterse tur biter.
+
+---
+
+### 🎯 Zorluk Seviyeleri
+
+URL parametresiyle seçilir: `http://localhost:3000?level=3`
+<br/>Seed ile deterministik level: `?seed=42&level=4`
+
+| Level | İsim | Süre | Hint | Max Tolerans | Engel Sıklığı |
+|:---:|---|---|:---:|---|---|
+| 1 | 🟢 Çok Kolay | 12 sn | ✅ | 260 ms | Seyrek |
+| 2 | 🔵 Kolay *(varsayılan)* | 15 sn | ✅ | 220 ms | Normal |
+| 3 | 🟡 Orta | 18 sn | ✅ | 200 ms | Normal |
+| 4 | 🟠 Zor | 22 sn | ❌ | 170 ms | Sık |
+| 5 | 🔴 Uzman | 26 sn | ❌ | 140 ms | Çok sık |
+
+> **Hint sistemi** (seviye 1–3): İkinci yarıda ghost indicator (beyaz pulsating daire) hangi anda ne yapman gerektiğini gösterir. Seviye 4 ve 5'te bu tamamen devre dışıdır — hafızandan başka kılavuzun yok.
+
+---
+
+## 🚀 Hızlı Başlangıç
+
+### Gereksinimler
+
+- **Node.js** ≥ 18
+- **npm** (Node ile birlikte gelir)
+- Modern bir tarayıcı (Chrome, Firefox, Safari, Edge)
+
+### Kurulum & Çalıştırma
 
 ```bash
+# Repoyu klonla
+git clone https://github.com/kullanicin/palindrome-runner.git
+cd palindrome-runner
+
+# Bağımlılıkları yükle
 npm install
-npm run dev        # http://localhost:3000
-npm run build      # TypeScript kontrolü + Vite build
-npm run preview    # Build önizleme
-npm test           # Vitest (136 test)
-npm run typecheck  # Sadece tsc --noEmit
+
+# Geliştirme sunucusunu başlat
+npm run dev
+# ► http://localhost:3000 adresinde açılır
+```
+
+### Diğer Komutlar
+
+```bash
+npm test           # 136 unit testi çalıştır (Vitest)
+npm run typecheck  # TypeScript tip kontrolü (derleme yapmadan)
+npm run build      # Üretim build'i (dist/ klasörüne)
+npm run preview    # Build sonrası önizleme
+```
+
+### Mobil Test
+
+Aynı ağdaki bir telefon veya tabletten oynamak için Mac'inin yerel IP'sini kullan:
+
+```bash
+# IP adresini bul
+ipconfig getifaddr en0
+
+# Telefon tarayıcısında aç
+http://192.168.x.x:3000
 ```
 
 ---
 
-## Proje Yapısı
+## 🏗 Mimari
+
+Palindrome Runner **sıfır runtime dependency** ile geliştirilmiştir. Tüm oyun mantığı pure TypeScript; Vite sadece build tooling için.
+
+### Katman Diyagramı
 
 ```
-src/
-├── core/
-│   ├── GameEngine.ts       # Ana oyun döngüsü ve faz yönetimi
-│   ├── Clock.ts            # Pause-aware kronometre
-│   ├── InputManager.ts     # Pointer/klavye → tap/hold_start ayrımı
-│   ├── StateMachine.ts     # Geçerli faz geçişleri
-│   └── FlashEffect.ts      # Rewind flaş efekti state'i
-├── entities/
-│   ├── Player.ts           # Zıplama fiziği (tap vs hold_start)
-│   ├── Obstacle.ts         # Engel hareketi + çarpışma
-│   └── Background.ts       # Parallax offset takibi
-├── gameplay/
-│   ├── PalindromeValidator.ts  # Mirror-time eşleştirme algoritması
-│   ├── InputRecorder.ts        # Faz bazlı input kaydı
-│   ├── LevelGenerator.ts       # Seeded RNG ile deterministik level
-│   └── ScoreSystem.ts          # Puan + combo + can mantığı
-├── rendering/
-│   ├── Renderer.ts         # Canvas 2D render + geri sayım UI
-│   ├── GhostIndicator.ts   # Mirror hint dairesi (lane'e göre yükseklik)
-│   └── FlashEffect.ts      # Flaş render fonksiyonu
-├── ui/
-│   ├── HUD.ts              # Skor/combo/faz/timebar DOM güncelleme
-│   ├── ResultScreen.ts     # Sonuç kartı
-│   └── Sfx.ts              # Web Audio API ses efektleri
-└── utils/
-    ├── constants.ts        # Canvas, engel, oyuncu sabitleri
-    ├── difficulty.ts       # Zorluk seviyeleri + URL param parser
-    ├── math.ts             # clamp, lerp, mirrorTime
-    └── RNG.ts              # Mulberry32 seeded PRNG
+┌─────────────────────────────────────────────────────────┐
+│                        main.ts                          │
+│              (entry point · DOM bağlantısı)             │
+└──────────┬─────────────────────┬───────────────────────┘
+           │                     │
+     ┌─────▼──────────┐   ┌──────▼──────────────────────┐
+     │  core/GameEngine│   │  rendering/Renderer          │
+     │  (oyun motoru)  │   │  (Canvas 2D · pure render)  │
+     └──────┬──────────┘   └──────────────────────────────┘
+            │
+    ┌───────┼───────────────────────────┐
+    │       │                           │
+┌───▼───────┴───┐  ┌───────────────┐  ┌▼───────────┐
+│  gameplay/    │  │  entities/    │  │  utils/    │
+│  ─────────── │  │  ─────────── │  │  ───────── │
+│  Palindrome  │  │  Player       │  │  constants │
+│  Validator   │  │  Obstacle     │  │  math      │
+│  ScoreSystem │  │  Background   │  │  RNG       │
+│  LevelGen    │  └───────────────┘  │  difficulty│
+│  InputRec.   │                     └────────────┘
+└───────────────┘
+```
+
+> 🔒 **Kritik Kural:** `GameEngine` hiçbir DOM referansı içermez. Bu sayede browser olmadan da tamamen test edilebilir.
+
+### Proje Yapısı
+
+```
+palindrome-runner/
+│
+├── src/
+│   ├── core/
+│   │   ├── GameEngine.ts        ← Ana oyun döngüsü ve faz geçişleri
+│   │   ├── Clock.ts             ← Pause-aware kronometre
+│   │   ├── InputManager.ts      ← Pointer/klavye → tap / hold_start
+│   │   ├── StateMachine.ts      ← Geçerli faz geçiş kuralları
+│   │   ├── FlashEffect.ts       ← Rewind flaş state'i
+│   │   └── __tests__/
+│   │
+│   ├── entities/
+│   │   ├── Player.ts            ← Zıplama fiziği (tap vs hold)
+│   │   ├── Obstacle.ts          ← Hareket, bounds, çarpışma
+│   │   ├── Background.ts        ← Parallax offset takibi
+│   │   └── __tests__/
+│   │
+│   ├── gameplay/
+│   │   ├── PalindromeValidator.ts   ← Mirror-time eşleştirme algoritması
+│   │   ├── InputRecorder.ts         ← Faz bazlı input kayıt/oynat
+│   │   ├── LevelGenerator.ts        ← Seeded RNG ile deterministik level
+│   │   ├── ScoreSystem.ts           ← Puan · combo · can mantığı
+│   │   └── __tests__/
+│   │
+│   ├── rendering/
+│   │   ├── Renderer.ts          ← Tüm canvas çizim koordinasyonu
+│   │   ├── GhostIndicator.ts    ← Mirror hint dairesi (lane'e göre)
+│   │   ├── FlashEffect.ts       ← Flaş render fonksiyonu
+│   │   └── __tests__/ (entegre)
+│   │
+│   ├── ui/
+│   │   ├── HUD.ts               ← Skor/combo/faz/timebar DOM
+│   │   ├── ResultScreen.ts      ← Sonuç kartı render + stats
+│   │   └── Sfx.ts               ← Web Audio API procedural ses
+│   │
+│   ├── utils/
+│   │   ├── constants.ts         ← Canvas, fizik, boyut sabitleri
+│   │   ├── difficulty.ts        ← 5 zorluk konfigürasyonu + URL parser
+│   │   ├── math.ts              ← clamp · lerp · mirrorTime
+│   │   ├── RNG.ts               ← Mulberry32 PRNG
+│   │   └── __tests__/
+│   │
+│   ├── types.ts                 ← Tüm shared tipler
+│   └── main.ts                  ← Bootstrap & oyun döngüsü
+│
+├── styles/
+│   └── main.css
+│
+├── index.html
+├── vite.config.ts
+├── tsconfig.json
+├── package.json
+├── CLAUDE.md                    ← Claude Code için mimari bağlam
+└── BUILD_PROMPTS.md             ← Geliştirme fazları geçmişi
 ```
 
 ---
 
-## Teknik Notlar
+## 🔬 Temel Algoritma
 
-- **Sıfır runtime dependency** — sadece TypeScript + Vite + Vitest
-- **Palindrome algoritması**: `mirrorTime(t, T) = T - t` — ilk yarıdaki t zamanındaki basış, ikinci yarıda `(T - t)` anında beklenir
-- **Hold mekaniği**: InputManager basış süresini ölçer; ≥ 150 ms → `hold_start` (Player 1.7× yüksek zıplar)
-- **Deterministik level**: aynı seed her zaman aynı obstacle dizisini üretir (Mulberry32 PRNG)
-- **Responsive**: JS tabanlı `scaleStage()` — 800×450 canvas küçük ekranlarda CSS `transform:scale()` ile ölçeklenir
+### Palindrome Doğrulama
+
+İlk yarıda her input kaydedilirken `mirrorTime` hesaplanır:
+
+```
+mirrorTime(t, T) = T − t
+
+Örnek (T = 15000ms):
+  t = 1500ms → mirror bekleniyor: 13500ms
+  t = 7200ms → mirror bekleniyor: 7800ms
+  t = 9000ms → mirror bekleniyor: 6000ms
+```
+
+İkinci yarıda her input geldiğinde, `PalindromeValidator` eşleşmemiş mirror'lar arasında en yakın olanı bulur (tip bazlı — `tap` sadece `tap` ile eşleşir, `hold_start` sadece `hold_start` ile).
+
+```typescript
+// Basitleştirilmiş validator mantığı
+validate(input: InputEvent): ValidationResult {
+  const best = mirrors
+    .filter(m => !used.has(m.id) && m.type === input.type)
+    .minBy(m => Math.abs(m.mirrorTime - input.timestamp));
+
+  const delta = Math.abs(best.mirrorTime - input.timestamp);
+  const quality = delta <= 60  ? 'perfect'
+                : delta <= 120 ? 'good'
+                : delta <= 200 ? 'ok'
+                               : 'miss';
+  return { quality, deltaMs: delta };
+}
+```
+
+### Hold Tespiti
+
+`InputManager` basış süresini pikosaniye hassasiyetiyle ölçer:
+
+```
+pointerdown / keydown ─── süre ölçümü başlar
+                              │
+              ┌───────────────▼───────────────┐
+              │         pointerup / keyup       │
+              └───────────────────────────────┘
+                              │
+              ┌───────────────▼───────────────┐
+              │ süre < 150ms ?                 │
+              │   → 'tap'      (normal zıp)    │
+              │ süre ≥ 150ms ?                 │
+              │   → 'hold_start' (yüksek zıp)  │
+              └───────────────────────────────┘
+```
 
 ---
 
-## Belgeler
+## 🔊 Ses Sistemi
 
-- [`CLAUDE.md`](CLAUDE.md) — Claude Code için kalıcı proje bağlamı ve mimari kurallar
-- [`BUILD_PROMPTS.md`](BUILD_PROMPTS.md) — Fazlara ayrılmış geliştirme geçmişi
+Oyun, hiçbir ses dosyası kullanmaz. Tüm ses efektleri **Web Audio API** ile anlık üretilir:
+
+| Durum | Dalga | Frekans | Efekt |
+|---|---|---|---|
+| Tap | Sinüs | 520 Hz | Kısa, nötr |
+| Perfect | Üçgen | 880 Hz | Parlak, tatmin edici |
+| Good | Üçgen | 660 Hz | Orta, olumlu |
+| Ok | Sinüs | 440 Hz | Sakin |
+| Miss | Testere | 140 Hz | Alçalan, olumsuz |
+| Rewind | Kare | 260→130 Hz | Dramatik düşüş |
+
+Ses 🔇 simgesiyle `localStorage`'a kaydedilen mute tercihi ile kalıcı olarak kapatılabilir.
+
+---
+
+## 📱 Mobil Destek
+
+Oyun tüm ekran boyutlarında çalışır:
+
+- **Responsive scaling:** `scaleStage()` fonksiyonu 800×450 canvas'ı küçük ekranlara `CSS transform: scale()` ile uyarlar — canvas çözünürlüğü değişmez, sadece görsel ölçek küçülür.
+- **Touch desteği:** `PointerEvents API` hem mouse hem touch'ı otomatik yakalar.
+- **Sayfa kaydırma engeli:** `touch-action: none` ile yanlışlıkla scroll önlenir.
+- **iOS Safari uyumu:** `100dvh` (dynamic viewport height) ile URL bar boşluklarına karşı koruma.
+
+---
+
+## 🗺 Yol Haritası
+
+| Durum | Özellik |
+|:---:|---|
+| ✅ | Temel palindrome mekaniği |
+| ✅ | 3 engel tipi (low / high / block) |
+| ✅ | Hold aksiyonu (yüksek zıplama) |
+| ✅ | Ghost indicator (mirror hint) |
+| ✅ | 5 zorluk seviyesi |
+| ✅ | Procedural ses (Web Audio API) |
+| ✅ | Responsive / mobil destek |
+| ✅ | Deterministik level (seed sistemi) |
+| 🔄 | `high` engeli için görsel uyarı |
+| 🔄 | Hold süresi palindrome kaydı (`hold_end` tracking) |
+| ○ | Zorluk seçim menüsü (in-game) |
+| ○ | High score listesi (tarihe göre, localStorage) |
+| ○ | PWA manifest — mobilde "Ana ekrana ekle" |
+| ○ | Replay sistemi — turu tekrar izle |
+
+<sub>✅ Tamamlandı · 🔄 Devam ediyor · ○ Planlandı</sub>
+
+---
+
+## 🛠 Teknik Bilgiler
+
+```
+Dil          TypeScript 5.4 (strict mod, noImplicitAny, strictNullChecks)
+Build        Vite 5.2
+Test         Vitest 1.6 — 16 dosya, 136 test, %100 pass
+Bağımlılık   Runtime: 0 · DevDependencies: 3 (vite, vitest, typescript)
+Canvas       2D Context — tüm render pure canvas, sıfır DOM manipülasyon
+Fizik        El yazısı (gravity + velocity), harici kütüphane yok
+RNG          Mulberry32 PRNG — deterministik, seed bazlı
+```
+
+---
+
+## 📄 Lisans
+
+[MIT](LICENSE) © Kutluhan Gil
+
+---
+
+<div align="center">
+
+*"Her harekette bir iz bırakırsın. İkinci şansın, o izi silmek değil — yansıtmak."*
+
+<br/>
+
+⭐ Beğendiysen bir yıldız bırak!
+
+</div>
