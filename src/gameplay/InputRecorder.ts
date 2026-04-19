@@ -15,7 +15,16 @@ export class InputRecorder {
     return this.events.slice();
   }
 
+  /** Geriye dönük uyumluluk: timestamp olarak anın clock değerini kullanır */
   record(type: InputType, timestamp: number): void {
+    this.recordWithTimestamp(type, timestamp);
+  }
+
+  /**
+   * Timestamp'i açıkça belirterek input kaydeder.
+   * Hold aksiyonlarında basışın başladığı anı geçirmek daha doğru palindrome eşleşmesi sağlar.
+   */
+  recordWithTimestamp(type: InputType, timestamp: number): void {
     if (!this.recording) return;
     this.events.push({
       id: crypto.randomUUID(),

@@ -8,7 +8,7 @@ import {
 } from '../gameplay/PalindromeValidator';
 import { generateLevel } from '../gameplay/LevelGenerator';
 import { GamePhase } from '../types';
-import type { InputEvent, RoundState } from '../types';
+import type { InputEvent, InputType, RoundState } from '../types';
 import { Player } from '../entities/Player';
 import { Obstacle } from '../entities/Obstacle';
 import { Background } from '../entities/Background';
@@ -101,17 +101,32 @@ export class GameEngine {
     this.start(this.lastSeed, this.lastHalfDurationMs);
   }
 
-  onTap(): void {
+  /**
+   * Kullanıcı input geldiğinde çağrılır.
+   * type: 'tap' → normal zıplama, 'hold_start' → güçlü zıplama
+   * pressStartMs: performance.now() ile ölçülen basış başlangıcı (palindrome timestamp'i için).
+   */
+  onInput(type: InputType, pressStartMs: number = performance.now()): void {
     const phase = this.state.phase;
+
     if (phase === GamePhase.FIRST_HALF) {
-      this.recorder.record('tap', this.clock.elapsed());
-      this.player.jump();
+      // Timestamp: basışın başladığı andaki clock değeri
+      const releaseElapsed = this.clock.elapsed();
+      const holdDuration =
+        type === 'hold_start' ? performance.now() - pressStartMs : 0;
+      const timestamp = Math.max(0, releaseElapsed - holdDuration);
+      this.recorder.recordWithTimestamp(type, timestamp);
+      this.player.jump(type);
       return;
     }
+
     if (phase === GamePhase.SECOND_HALF) {
-      const timestamp = this.clock.elapsed();
-      this.recorder.record('tap', timestamp);
-      this.player.jump();
+      const releaseElapsed = this.clock.elapsed();
+      const holdDuration =
+        type === 'hold_start' ? performance.now() - pressStartMs : 0;
+      const timestamp = Math.max(0, releaseElapsed - holdDuration);
+      this.recorder.recordWithTimestamp(type, timestamp);
+      this.player.jump(type);
       const events = this.recorder.getEvents();
       const last = events[events.length - 1];
       if (!this.validator || !last) return;
@@ -128,6 +143,11 @@ export class GameEngine {
       if (this.onMatch) this.onMatch(result.quality);
       this.syncScoreSnapshot();
     }
+  }
+
+  /** Geriye dönük uyumluluk için kısa alias */
+  onTap(): void {
+    this.onInput('tap', performance.now());
   }
 
   update(dtMs: number = DEFAULT_DT_MS): void {
@@ -183,12 +203,14 @@ export class GameEngine {
   getExpectedMirrors(): ReadonlyArray<{
     id: string;
     mirrorTime: number;
+    type: InputType;
     used: boolean;
   }> {
     if (!this.validator) return [];
     return this.validator.getExpectedMirrors().map((m) => ({
       id: m.id,
       mirrorTime: m.mirrorTime,
+      type: m.type,
       used: m.used,
     }));
   }
@@ -205,7 +227,12 @@ export class GameEngine {
 
   private updateObstacles(dtMs: number): void {
     for (const o of this.obstacles) {
+      const wasAlive = o.alive;
       o.update(dtMs, SCROLL_SPEED_PX_PER_MS);
+      // Engeli atlatıldıysa (çarpmadan geçtiyse) bonus puan
+      if (wasAlive && !o.alive && !o.collided) {
+        this.scoreSystem.addObstacleBonus();
+      }
     }
     this.obstacles = this.obstacles.filter((o) => o.alive);
   }

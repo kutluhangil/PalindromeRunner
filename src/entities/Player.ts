@@ -5,6 +5,10 @@ import {
   PLAYER_H,
   PLAYER_X,
 } from '../utils/constants';
+import type { InputType } from '../types';
+
+/** Uzun basışta zıplama katsayısı (hold_start → %70 daha yüksek) */
+const HOLD_JUMP_MULTIPLIER = 1.7;
 
 export class Player {
   x: number = PLAYER_X;
@@ -13,9 +17,17 @@ export class Player {
   onGround: boolean = true;
   lane: 0 | 1 | 2 = 1;
 
-  jump(): void {
+  /**
+   * tap   → normal zıplama (low engelleri aşar)
+   * hold_start → güçlü zıplama (block ve high engelleri aşar)
+   */
+  jump(type: InputType = 'tap'): void {
     if (!this.onGround) return;
-    this.vy = JUMP_VY_PX_PER_MS;
+    const velocity =
+      type === 'hold_start'
+        ? JUMP_VY_PX_PER_MS * HOLD_JUMP_MULTIPLIER
+        : JUMP_VY_PX_PER_MS;
+    this.vy = velocity;
     this.onGround = false;
   }
 

@@ -45,11 +45,37 @@ function saveMuted(muted: boolean): void {
   }
 }
 
+// ─── DOM ─────────────────────────────────────────────────────────────────────
+
 const canvas = document.getElementById('game') as HTMLCanvasElement | null;
 if (!canvas) throw new Error('canvas#game bulunamadı');
 const ctx = canvas.getContext('2d');
 if (!ctx) throw new Error('2d context alınamadı');
 const muteButton = document.getElementById('mute-button') as HTMLButtonElement | null;
+
+// ─── Responsive ──────────────────────────────────────────────────────────────
+
+const DESIGN_W = 800;
+const DESIGN_H = 450;
+
+function scaleStage(): void {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  const scaleX = window.innerWidth / DESIGN_W;
+  const scaleY = window.innerHeight / DESIGN_H;
+  const scale = Math.min(scaleX, scaleY, 1); // Küçük ekranlarda küçült, büyütme
+  stage.style.transform = `scale(${scale})`;
+  // Container yüksekliğini ölçeği hesaba katarak güncelle
+  const appEl = document.getElementById('app');
+  if (appEl) {
+    appEl.style.minHeight = scale < 1 ? `${DESIGN_H * scale}px` : '';
+  }
+}
+
+scaleStage();
+window.addEventListener('resize', scaleStage);
+
+// ─── Oyun ────────────────────────────────────────────────────────────────────
 
 const { seed, level } = parseUrlParams(window.location.search, {
   seed: 1,
@@ -84,9 +110,9 @@ const resultScreen = createResultScreen(() => {
 
 const input = new InputManager({
   target: canvas,
-  onTap: () => {
+  onInput: (type, pressStartMs) => {
     sfx.play('tap');
-    engine.onTap();
+    engine.onInput(type, pressStartMs);
   },
 });
 input.attach();
