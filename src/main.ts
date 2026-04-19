@@ -8,52 +8,30 @@ import { GamePhase } from './types';
 import { getDifficulty, parseUrlParams } from './utils/difficulty';
 
 const HIGH_SCORE_KEY = 'palindrome-runner:high-score';
-const MUTE_KEY = 'palindrome-runner:muted';
+const MUTE_KEY      = 'palindrome-runner:muted';
 
 function loadHighScore(): number {
-  try {
-    const raw = localStorage.getItem(HIGH_SCORE_KEY);
-    if (!raw) return 0;
-    const n = Number.parseInt(raw, 10);
-    return Number.isFinite(n) ? n : 0;
-  } catch {
-    return 0;
-  }
+  try { const n = Number.parseInt(localStorage.getItem(HIGH_SCORE_KEY) ?? '0', 10); return Number.isFinite(n) ? n : 0; } catch { return 0; }
 }
-
-function saveHighScore(score: number): void {
-  try {
-    localStorage.setItem(HIGH_SCORE_KEY, String(score));
-  } catch {
-    // ignore
-  }
+function saveHighScore(s: number): void {
+  try { localStorage.setItem(HIGH_SCORE_KEY, String(s)); } catch { /* ignore */ }
 }
-
 function loadMuted(): boolean {
-  try {
-    return localStorage.getItem(MUTE_KEY) === '1';
-  } catch {
-    return false;
-  }
+  try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; }
+}
+function saveMuted(m: boolean): void {
+  try { localStorage.setItem(MUTE_KEY, m ? '1' : '0'); } catch { /* ignore */ }
 }
 
-function saveMuted(muted: boolean): void {
-  try {
-    localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
-  } catch {
-    // ignore
-  }
-}
-
-// ─── DOM ─────────────────────────────────────────────────────────────────────
+// ─── DOM ──────────────────────────────────────────────────────────────────────
 
 const canvas = document.getElementById('game') as HTMLCanvasElement | null;
 if (!canvas) throw new Error('canvas#game bulunamadı');
 const ctx = canvas.getContext('2d');
-if (!ctx) throw new Error('2d context alınamadı');
+if (!ctx) throw new Error('2D context alınamadı');
 const muteButton = document.getElementById('mute-button') as HTMLButtonElement | null;
 
-// ─── Responsive ──────────────────────────────────────────────────────────────
+// ─── Responsive fullscreen scaling ────────────────────────────────────────────
 
 const DESIGN_W = 800;
 const DESIGN_H = 450;
@@ -61,37 +39,30 @@ const DESIGN_H = 450;
 function scaleStage(): void {
   const stage = document.getElementById('stage');
   if (!stage) return;
-  const scaleX = window.innerWidth / DESIGN_W;
+  const scaleX = window.innerWidth  / DESIGN_W;
   const scaleY = window.innerHeight / DESIGN_H;
-  const scale = Math.min(scaleX, scaleY, 1); // Küçük ekranlarda küçült, büyütme
+  // "contain" — tüm canvas görünür, letterbox çöl rengiyle dolar
+  const scale = Math.min(scaleX, scaleY);
   stage.style.transform = `scale(${scale})`;
-  // Container yüksekliğini ölçeği hesaba katarak güncelle
-  const appEl = document.getElementById('app');
-  if (appEl) {
-    appEl.style.minHeight = scale < 1 ? `${DESIGN_H * scale}px` : '';
-  }
 }
 
 scaleStage();
 window.addEventListener('resize', scaleStage);
+screen.orientation?.addEventListener?.('change', scaleStage);
 
-// ─── Oyun ────────────────────────────────────────────────────────────────────
+// ─── Game setup ───────────────────────────────────────────────────────────────
 
-const { seed, level } = parseUrlParams(window.location.search, {
-  seed: 1,
-  level: 2,
-});
+const { seed, level } = parseUrlParams(window.location.search, { seed: 1, level: 2 });
 const difficulty = getDifficulty(level);
 
-const engine = new GameEngine();
+const engine   = new GameEngine();
 const renderer = new Renderer(ctx);
-const hud = createHUD();
-const sfx = new Sfx();
+const hud      = createHUD();
+const sfx      = new Sfx();
 sfx.setMuted(loadMuted());
 
 function renderMuteIcon(): void {
-  if (!muteButton) return;
-  muteButton.textContent = sfx.isMuted() ? '🔇' : '🔊';
+  if (muteButton) muteButton.textContent = sfx.isMuted() ? '🔇' : '🔊';
 }
 renderMuteIcon();
 
@@ -108,24 +79,24 @@ const resultScreen = createResultScreen(() => {
   startRound();
 });
 
-const input = new InputManager({
+const inputMgr = new InputManager({
   target: canvas,
   onInput: (type, pressStartMs) => {
-    sfx.play('tap');
+    sfx.play('tap'); // her zıplamada meep meep
     engine.onInput(type, pressStartMs);
   },
 });
-input.attach();
+inputMgr.attach();
 
 let highScore = loadHighScore();
 let lastPhase: GamePhase = GamePhase.IDLE;
 
 function startRound(): void {
   engine.start(seed, difficulty.halfDurationMs, {
-    tolerance: difficulty.tolerance,
-    minGapMs: difficulty.minGapMs,
-    maxGapMs: difficulty.maxGapMs,
-    hintEnabled: difficulty.hintEnabled,
+    tolerance:    difficulty.tolerance,
+    minGapMs:     difficulty.minGapMs,
+    maxGapMs:     difficulty.maxGapMs,
+    hintEnabled:  difficulty.hintEnabled,
     onMatch: (quality) => sfx.play(quality),
   });
   lastPhase = GamePhase.IDLE;
@@ -133,10 +104,14 @@ function startRound(): void {
 
 startRound();
 
+// ─── Game loop ────────────────────────────────────────────────────────────────
+
 let lastMs = performance.now();
+
 function loop(nowMs: number): void {
   const dt = Math.min(64, nowMs - lastMs);
   lastMs = nowMs;
+
   engine.update(dt);
 
   const state = engine.getState();
@@ -164,6 +139,5 @@ function loop(nowMs: number): void {
 
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
 
-console.log('booted', { seed, level: difficulty.level, label: difficulty.label });
+requestAnimationFrame(loop);

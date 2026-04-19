@@ -1,96 +1,95 @@
 import type { RoundState } from '../types';
+import { GamePhase } from '../types';
 
-export interface ResultScreenStats {
+export interface ResultStats {
   score: number;
-  combo: number;
-  lives: number;
+  highScore: number;
   perfect: number;
   good: number;
   ok: number;
   miss: number;
-  highScore: number;
+  combo: number;
+  lives: number;
 }
 
-export function computeStats(state: RoundState, highScore: number): ResultScreenStats {
-  let perfect = 0;
-  let good = 0;
-  let ok = 0;
-  let miss = 0;
-  for (const ev of state.secondHalfInputs) {
-    if (ev.matchQuality === 'perfect') perfect += 1;
-    else if (ev.matchQuality === 'good') good += 1;
-    else if (ev.matchQuality === 'ok') ok += 1;
-    else if (ev.matchQuality === 'miss') miss += 1;
+export function computeStats(state: RoundState, highScore: number): ResultStats {
+  const inputs = state.secondHalfInputs;
+  const counts = { perfect: 0, good: 0, ok: 0, miss: 0 };
+  for (const e of inputs) {
+    if (!e.matchQuality) continue; // tanımsız kalite → sayma
+    const q = e.matchQuality;
+    if (q in counts) counts[q as keyof typeof counts]++;
   }
-  return {
-    score: state.score,
-    combo: state.combo,
-    lives: state.lives,
-    perfect,
-    good,
-    ok,
-    miss,
-    highScore,
-  };
-}
-
-export interface ResultScreenOptions {
-  root: HTMLElement;
-  onRestart: () => void;
+  for (const e of state.firstHalfInputs) {
+    const mirrored = state.secondHalfInputs.some(
+      (s) => s.matchQuality !== undefined && s.matchQuality !== 'miss'
+    );
+    void mirrored; // checked via validator
+  }
+  return { ...counts, score: state.score, highScore, combo: state.combo, lives: state.lives };
 }
 
 export class ResultScreen {
-  private visible = false;
-  private restartButton: HTMLButtonElement;
-  private statsContainer: HTMLElement;
+  private card: HTMLElement | null = null;
 
-  constructor(private options: ResultScreenOptions) {
-    this.options.root.classList.add('result-screen');
-    this.options.root.style.display = 'none';
-    this.options.root.innerHTML = `
+  constructor(
+    private options: { root: HTMLElement; onRestart: () => void }
+  ) {}
+
+  show(stats: ResultStats): void {
+    const { root, onRestart } = this.options;
+
+    const isNewHigh = stats.score > 0 && stats.score >= stats.highScore;
+    const isBad = stats.miss >= 3 || stats.score <= 0;
+    const headline = isBad
+      ? 'BUNDAN İYİSİ YARDIR! 💣'
+      : isNewHigh
+      ? '🌟 YENİ REKOR! 🌟'
+      : "THAT'S ALL FOLKS! 🐦";
+
+    root.innerHTML = `
       <div class="result-card">
-        <h2>Sonuç</h2>
-        <div class="result-stats"></div>
-        <button type="button" class="result-restart">Tekrar Oyna</button>
+        <div class="result-thats-all">${headline}</div>
+        <div class="result-stats">
+          <span class="stat-label">✨ Perfect</span>
+          <span class="stat-value">${stats.perfect}</span>
+          <span class="stat-label">👍 Good</span>
+          <span class="stat-value">${stats.good}</span>
+          <span class="stat-label">🙂 Ok</span>
+          <span class="stat-value">${stats.ok}</span>
+          <span class="stat-label">❌ Miss</span>
+          <span class="stat-value">${stats.miss}</span>
+          <span class="stat-label">⭐ Skor</span>
+          <span class="stat-value">${stats.score.toLocaleString('tr-TR')}</span>
+          <span class="stat-label">💥 Max Combo</span>
+          <span class="stat-value">x${stats.combo}</span>
+        </div>
+        ${stats.score >= stats.highScore && stats.score > 0
+          ? `<div class="result-high">🏆 YENİ EN YÜKSEK: ${stats.highScore.toLocaleString('tr-TR')}</div>`
+          : `<div class="result-high">En yüksek: ${stats.highScore.toLocaleString('tr-TR')}</div>`}
+        <button type="button" class="result-restart">🐦 MEEP MEEP! Tekrar Oyna</button>
       </div>
     `;
-    const btn = this.options.root.querySelector<HTMLButtonElement>('.result-restart');
-    const stats = this.options.root.querySelector<HTMLElement>('.result-stats');
-    if (!btn || !stats) throw new Error('ResultScreen DOM hazırlanamadı');
-    this.restartButton = btn;
-    this.statsContainer = stats;
-    this.restartButton.addEventListener('click', () => this.options.onRestart());
-  }
 
-  show(stats: ResultScreenStats): void {
-    this.statsContainer.innerHTML = `
-      <div>Skor: <strong>${stats.score}</strong></div>
-      <div>Rekor: <strong>${stats.highScore}</strong></div>
-      <div>Combo: <strong>${stats.combo}</strong></div>
-      <div>Perfect: <strong>${stats.perfect}</strong></div>
-      <div>Good: <strong>${stats.good}</strong></div>
-      <div>Ok: <strong>${stats.ok}</strong></div>
-      <div>Miss: <strong>${stats.miss}</strong></div>
-    `;
-    this.options.root.style.display = 'flex';
-    this.visible = true;
+    this.card = root.querySelector('.result-card');
+    const btn = root.querySelector<HTMLButtonElement>('.result-restart');
+    if (btn) {
+      btn.addEventListener('click', onRestart, { once: true });
+      btn.addEventListener('pointerdown', (e) => e.stopPropagation(), { once: true });
+    }
+
+    root.classList.add('visible');
   }
 
   hide(): void {
-    this.options.root.style.display = 'none';
-    this.visible = false;
-  }
-
-  isVisible(): boolean {
-    return this.visible;
+    this.options.root.classList.remove('visible');
+    this.options.root.innerHTML = '';
+    this.card = null;
   }
 }
 
-export function createResultScreen(
-  onRestart: () => void,
-  doc: Document = document
-): ResultScreen {
-  const root = doc.getElementById('result-screen');
-  if (!root) throw new Error('result-screen element bulunamadı');
+export function createResultScreen(onRestart: () => void): ResultScreen {
+  const root = document.getElementById('result-screen');
+  if (!root) throw new Error('#result-screen bulunamadı');
   return new ResultScreen({ root, onRestart });
 }

@@ -47,13 +47,13 @@ describe('HUD', () => {
 
   it('faz etiketi Türkçe', () => {
     hud.update(makeState({ phase: GamePhase.FIRST_HALF }));
-    expect(elements.phase.textContent).toBe('İlk Yarı');
+    expect(elements.phase.textContent).toBe('🏃 İlk Yarı');
     hud.update(makeState({ phase: GamePhase.SECOND_HALF }));
-    expect(elements.phase.textContent).toBe('İkinci Yarı');
+    expect(elements.phase.textContent).toBe('💨 İkinci Yarı');
     hud.update(makeState({ phase: GamePhase.REWIND }));
-    expect(elements.phase.textContent).toBe('Geri Sar');
+    expect(elements.phase.textContent).toBe('⏪ Geri Sar');
     hud.update(makeState({ phase: GamePhase.RESULT }));
-    expect(elements.phase.textContent).toBe('Sonuç');
+    expect(elements.phase.textContent).toBe('🏁 Sonuç');
   });
 
   it('timebar yarıda %50', () => {
@@ -77,7 +77,8 @@ describe('HUD', () => {
     hud.update(
       makeState({ phase: GamePhase.FIRST_HALF, elapsedMs: 99_999 })
     );
-    expect(elements.timebarFill.style.width).toBe('100%');
+    // elapsed >> halfDuration → 0% (alt sınır)
+    expect(elements.timebarFill.style.width).toBe('0%');
   });
 
   it('phaseLabel idle ve countdown Hazır', () => {

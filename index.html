@@ -2,24 +2,40 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>Palindrome Runner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#1565C0" />
+    <title>Palindrome Runner 🐦</title>
+    <meta name="description" content="Koş, atla, tersine çevir — Road Runner tarzı palindrome ritim oyunu." />
+    <!-- Looney Tunes cartoon font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Fredoka:wght@400;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles/main.css" />
   </head>
   <body>
     <div id="app">
       <div id="stage">
         <canvas id="game" width="800" height="450"></canvas>
+
+        <!-- HUD overlaid on canvas -->
         <div id="hud">
-          <div id="score">Skor: 0</div>
-          <div id="combo">Combo: 0</div>
-          <div id="phase">Hazır...</div>
+          <div id="lives">❤️❤️❤️</div>
+          <div id="phase">HAZIRLAN...</div>
+          <div id="score-group">
+            <span id="combo"></span>
+            <span id="score">⭐ 0</span>
+          </div>
           <div id="timebar"><div id="timebar-fill"></div></div>
         </div>
+
+        <!-- Result overlay -->
         <div id="result-screen"></div>
-        <button id="mute-button" type="button" aria-label="Sessize al">🔊</button>
+
+        <!-- Mute toggle -->
+        <button id="mute-button" type="button" aria-label="Sesi aç/kapat">🔊</button>
       </div>
     </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

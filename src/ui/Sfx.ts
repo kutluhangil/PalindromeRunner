@@ -52,6 +52,13 @@ export class Sfx {
   play(kind: SfxKind): void {
     const ctx = this.ensureContext();
     if (!ctx) return;
+
+    // Road Runner "meep meep" — tap ve hold_start girişinde çift bip
+    if (kind === 'tap') {
+      this.playMeepMeep(ctx);
+      return;
+    }
+
     const cfg = TONES[kind];
     const now = ctx.currentTime;
     const end = now + cfg.durationMs / 1000;
@@ -70,5 +77,28 @@ export class Sfx {
     gain.connect(ctx.destination);
     osc.start(now);
     osc.stop(end);
+  }
+
+  /**
+   * Road Runner "Meep Meep!" — iki hızlı, inen sinüs dalgası.
+   * İlk bip: 960 → 700 Hz, İkinci bip: 150ms sonra başlar.
+   */
+  private playMeepMeep(ctx: AudioContext): void {
+    const now = ctx.currentTime;
+    for (let i = 0; i < 2; i++) {
+      const start = now + i * 0.17; // 170ms arayla iki bip
+      const dur = 0.10;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(960, start);
+      osc.frequency.exponentialRampToValueAtTime(680, start + dur);
+      gain.gain.setValueAtTime(0.20, start);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.01);
+    }
   }
 }
